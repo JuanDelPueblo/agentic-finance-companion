@@ -1,0 +1,58 @@
+# Local development stack. Start it with `podman compose up --build -d`
+# or `docker compose up --build -d`.
+name: agentic-finance
+
+services:
+  db:
+    image: docker.io/library/postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-finance}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finance}
+      POSTGRES_DB: ${POSTGRES_DB:-finance}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # PostgreSQL 18 images keep data under /var/lib/postgresql/18/docker.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finance}:${POSTGRES_PASSWORD:-finance}@db:5432/${POSTGRES_DB:-finance}
+    command: >-
+      sh -c "uv sync --frozen --no-install-project &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    volumes:
+      # :z lets SELinux (Fedora) allow the mount. Docker accepts it too.
+      - ./backend:/app:z
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+    command: sh -c "npm install --no-audit --no-fund && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app:z
+      # Keeps the container's packages separate from a node_modules folder on the host.
+      - node_modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  node_modules:
