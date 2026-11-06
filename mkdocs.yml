@@ -1,0 +1,5 @@
+site_name: Agentic Finance Companion
+nav:
+  - Overview: index.md
+  - Setup: setup.md
+  - Development: development.md
