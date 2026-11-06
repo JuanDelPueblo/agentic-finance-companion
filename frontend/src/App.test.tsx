@@ -8,9 +8,7 @@ afterEach(() => vi.unstubAllGlobals())
 it('shows the backend status', async () => {
   const health = {
     status: 'ok',
-    environment: 'test',
     database: { connected: true },
-    providers: [],
   }
   vi.stubGlobal('fetch', vi.fn(async () => Response.json(health)))
 

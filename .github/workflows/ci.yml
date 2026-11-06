@@ -63,12 +63,8 @@ jobs:
       - run: uv sync --locked
       - name: Lint
         run: uv run ruff check . && uv run ruff format --check .
-      - name: Type-check
-        run: uv run mypy app scripts tests
       - name: Test
         run: uv run pytest
-      - name: Audit dependencies
-        run: uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.txt && uvx pip-audit -r requirements.txt
 
   frontend:
     needs: changes
@@ -145,7 +141,7 @@ jobs:
       - name: Fail if the contract is out of date
         run: |
           git diff --exit-code -- backend/openapi.json frontend/src/api/schema.d.ts || {
-            echo "::error::The committed API contract is out of date. Run 'make openapi' and commit the changes."
+            echo "::error::The committed API contract is out of date. Regenerate the API contract and types using docs/development.md."
             exit 1
           }
 

@@ -1,40 +1,41 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
-from app.api import auth, finance, health, plaid
-from app.config import get_settings
 from app.db import get_engine
-from app.integrations.plaid import PlaidError
+
+
+class DatabaseStatus(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    connected: bool
+
+
+class Health(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: str
+    database: DatabaseStatus
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    get_settings()  # fail at startup, not on the first request, if settings are invalid
     yield
     await get_engine().dispose()
 
 
-async def plaid_error_handler(_request: Request, exc: Exception) -> JSONResponse:
-    assert isinstance(exc, PlaidError)
-    return JSONResponse(
-        status_code=409 if exc.requires_relink else 502,
-        content={
-            "detail": exc.message,
-            "code": exc.error_code,
-            "requires_relink": exc.requires_relink,
-        },
-    )
+app = FastAPI(title="Agentic Finance Companion API", version="0.1.0", lifespan=lifespan)
 
 
-def create_app() -> FastAPI:
-    app = FastAPI(title="Agentic Finance Companion API", version="0.1.0", lifespan=lifespan)
-    for module in (health, auth, plaid, finance):
-        app.include_router(module.router, prefix="/api")
-    app.add_exception_handler(PlaidError, plaid_error_handler)
-    return app
-
-
-app = create_app()
+@app.get("/api/health", tags=["system"])
+async def health() -> Health:
+    try:
+        async with get_engine().connect() as connection:
+            await connection.execute(text("SELECT 1"))
+    except (SQLAlchemyError, OSError):
+        return Health(status="degraded", database=DatabaseStatus(connected=False))
+    return Health(status="ok", database=DatabaseStatus(connected=True))

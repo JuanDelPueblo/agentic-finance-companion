@@ -2,31 +2,40 @@
 
 ## API contract
 
-The backend defines the API with Pydantic schemas in `backend/app/schemas/` and the
-routes in `backend/app/api/`. From these, FastAPI generates an OpenAPI document. The
-frontend's TypeScript types are generated from that document:
+FastAPI generates the OpenAPI document from the backend routes and response models.
+The frontend generates TypeScript types from that document.
 
 ```text
-backend/app/schemas/ ──► backend/openapi.json ──► frontend/src/api/schema.d.ts
+backend/app/ ──► backend/openapi.json ──► frontend/src/api/schema.d.ts
 ```
 
 After you change a schema or route:
 
-1. Run `make openapi`. It regenerates both files.
-2. Fix any frontend type errors (`cd frontend && npm run typecheck`).
-3. Commit the regenerated files with your change.
+1. From the repo root, run `cd backend && uv run python scripts/export_openapi.py`.
+2. From the repo root, run `cd frontend && npm ci && npm run generate:api`.
+3. Fix any frontend type errors (`cd frontend && npm run typecheck`).
+4. Commit the regenerated files with your change.
 
 CI fails if the committed files are out of date, or if the frontend no longer
 type-checks against them. While the backend runs, you can browse and try the API at
 [localhost:8000/docs](http://localhost:8000/docs).
 
-## Tests
+## Checks
 
 | Suite | Command |
 |---|---|
-| Backend | `cd backend && uv run pytest` |
+| Backend lint and format | `cd backend && uv run ruff check . && uv run ruff format --check .` |
+| Backend tests | `cd backend && uv run pytest` |
 | Frontend | `cd frontend && npm test` |
 | End-to-end | `cd frontend && npx playwright test` |
 
-No test needs PostgreSQL, a running container, or credentials. External services are
-mocked.
+The tests use simulated API or database responses and can run without containers or credentials.
+
+## Documentation site
+
+MkDocs reads `mkdocs.yml` and builds the pages in `docs/`. Run the same strict build
+as CI from the repository root.
+
+```sh
+uvx --with-requirements docs/requirements.txt mkdocs build --strict
+```

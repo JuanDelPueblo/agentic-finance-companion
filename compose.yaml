@@ -39,6 +39,15 @@ services:
       db:
         condition: service_healthy
 
+  worker:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finance}:${POSTGRES_PASSWORD:-finance}@db:5432/${POSTGRES_DB:-finance}
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+
   frontend:
     build: ./frontend
     environment:

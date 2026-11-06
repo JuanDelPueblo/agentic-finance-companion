@@ -6,9 +6,7 @@ test('home page shows the backend status', async ({ page }) => {
     route.fulfill({
       json: {
         status: 'ok',
-        environment: 'test',
         database: { connected: true },
-        providers: [],
       },
     }),
   )

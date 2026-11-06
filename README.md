@@ -1,8 +1,7 @@
 # Agentic Finance Companion
 
-A web app that turns bank data and a few questions into a financial plan for students and
-early-career adults with irregular income. A deterministic engine computes the numbers, an
-LLM writes the plan, and a validator checks the plan before the user sees it.
+A capstone project to help students and early-career adults with irregular income
+turn their bank data into a financial plan.
 
 Capstone project, University of Puerto Rico at Mayagüez, Fall 2026.
 
@@ -14,18 +13,24 @@ Capstone project, University of Puerto Rico at Mayagüez, Fall 2026.
 | Julio Camacho | [CdoxHype](https://github.com/CdoxHype) | Backend and planning engine |
 | Ángel A. Martínez Maldonado | [AngelMartinez33](https://github.com/AngelMartinez33) | Frontend and user experience |
 
+## Current starter
+
+- The React frontend displays the API and database connection status.
+- FastAPI exposes `GET /api/health`, which checks the PostgreSQL connection.
+- Compose runs the frontend, API, PostgreSQL, and a worker that waits for shutdown.
+  Database tables, migrations, and job processing are planned for later.
+
 ## Quick start
 
-You need Podman or Docker with Compose, `make`, [uv](https://docs.astral.sh/uv/), and
-Node.js 24.
+Run from the repository root with Docker Compose or Podman Compose.
 
 ```sh
-make setup                     # create .env and install dependencies
-podman compose up --build -d   # or: docker compose up --build -d
+docker compose up --build -d   # or: podman compose up --build -d
 ```
 
-Open [localhost:5173](http://localhost:5173). All external services run as mocks until
-you add credentials to `.env`.
+Open the [frontend](http://localhost:5173) or the
+[interactive API reference](http://localhost:8000/docs). The stack starts with local
+defaults. See the [setup guide](docs/setup.md) for configuration and host commands.
 
 ## Documentation
 

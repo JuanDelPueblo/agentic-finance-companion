@@ -1,59 +1,42 @@
 # Setup
 
-## Prerequisites
-
-- Podman with `podman compose`, or Docker with Compose
-- `make`
-- [uv](https://docs.astral.sh/uv/) and Node.js 24
-
-The commands below use `podman compose`. With Docker, use `docker compose`.
-
 ## Run in containers
 
+With Docker Compose or Podman Compose installed, run from the repository root.
+
 ```sh
-make setup                     # create .env and install dependencies
-podman compose up --build -d
+docker compose up --build -d   # or: podman compose up --build -d
 ```
 
-Open [localhost:5173](http://localhost:5173). The page reads **Backend: ok**. The API
-reference is at [localhost:8000/docs](http://localhost:8000/docs).
+Open [localhost:5173](http://localhost:5173). The page reads **Backend: ok** when the
+API can reach PostgreSQL. The API reference is at [localhost:8000/docs](http://localhost:8000/docs).
+The worker starts alongside the API and waits for shutdown.
 
-Code changes reload automatically. Stop the stack with `podman compose down`. Add `-v`
-to also delete the database.
+Stop the stack with `docker compose down` or `podman compose down`.
 
 ## Run on the host
 
+To run the API and frontend on the host, install [uv](https://docs.astral.sh/uv/)
+and Node.js 24. Start PostgreSQL from the repository root.
+
 ```sh
-podman compose up -d db
-
+docker compose up -d db   # or: podman compose up -d db
 cd backend
+uv sync --locked
 uv run uvicorn app.main:app --reload
+```
 
-cd frontend        # in a second terminal
+In a second terminal, start the frontend from the repository root.
+
+```sh
+cd frontend
+npm ci
 npm run dev
 ```
 
-## Settings
+## Local settings
 
-`.env.example` lists every setting with a comment. By default, all external services are
-mocks:
-
-- **Auth:** requests without a token act as `dev-user`. Send
-  `Authorization: Bearer dev:<name>` to act as another user.
-- **Plaid:** any public token that starts with `public-mock-` connects three synthetic
-  accounts. `public-mock-login-required` gives a connection that needs re-linking.
-- **LLM:** returns only the responses that a test registers with
-  `MockLLM(responses=...)`.
-
-To use the Plaid Sandbox, put your Sandbox keys in `.env` and set `PLAID_PROVIDER=plaid`.
-
-## Make targets
-
-| Command | What it does |
-|---|---|
-| `make setup` | Creates `.env` and installs dependencies |
-| `make lint` | Lints and type-checks both apps |
-| `make test` | Runs the unit tests |
-| `make openapi` | Regenerates the API contract and frontend types |
-| `make docs` | Builds this site |
-| `make check` | Runs everything CI runs |
+Copy `.env.example` to `.env` if you want to override the PostgreSQL defaults.
+Compose builds the container connection URL from the `POSTGRES_*` settings.
+When running the API on the host, update `DATABASE_URL` to match any changes to
+the database credentials or published port.
