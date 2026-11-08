@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     plaid_webhook_url: str | None = None
     token_encryption_key: SecretStr | None = None
 
+    anthropic_api_key: SecretStr | None = None
+    llm_model: str = "claude-haiku-5-5"
+
 
 @lru_cache
 def get_engine() -> AsyncEngine:
