@@ -2,6 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
@@ -11,8 +12,17 @@ from app.models import User
 LOCAL_TEST_USER_ID = UUID("166bb3fb-dc61-4786-b5b5-7d049c7f927a")
 LOCAL_TEST_AUTH_SUBJECT = "local:plaid-sandbox"
 
+bearer = HTTPBearer()
 
-async def get_current_user_id(session: Annotated[AsyncSession, Depends(get_session)]) -> UUID:
+async def get_current_user_id(
+        session: Annotated[AsyncSession, Depends(get_session)],
+        auth: Annotated[HTTPAuthorizationCredentials, Depends(bearer)]
+        ) -> UUID:
+
+    # Remaining Validation and Getting the users after
+    # For now mock user is used change later
+    token = auth.credentials
+
     user = await session.get(User, LOCAL_TEST_USER_ID)
     if user is None:
         user = User(
