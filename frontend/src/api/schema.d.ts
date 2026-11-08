@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/api/financial-state/available-cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Available Cash */
+        get: operations["available_cash_api_financial_state_available_cash_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financial-state/monthly-income": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monthly Income */
+        get: operations["monthly_income_api_financial_state_monthly_income_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -76,6 +110,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AvailableCashForCurrency */
+        AvailableCashForCurrency: {
+            /** Amount */
+            amount: string | null;
+            /** Currency Code */
+            currency_code: string;
+            /** Included Accounts */
+            included_accounts: number;
+            /** Missing Balance Accounts */
+            missing_balance_accounts: number;
+            /** Oldest Sync At */
+            oldest_sync_at: string | null;
+        };
+        /** AvailableCashSummary */
+        AvailableCashSummary: {
+            /** By Currency */
+            by_currency: components["schemas"]["AvailableCashForCurrency"][];
+            /** Unknown Currency Accounts */
+            unknown_currency_accounts: number;
+        };
         /** DatabaseStatus */
         DatabaseStatus: {
             /** Connected */
@@ -121,6 +175,27 @@ export interface components {
              */
             item_id: string;
         };
+        /** MonthlyIncomeForCurrency */
+        MonthlyIncomeForCurrency: {
+            /** Amount */
+            amount: string;
+            /** Currency Code */
+            currency_code: string;
+            /** Included Transactions */
+            included_transactions: number;
+        };
+        /** MonthlyIncomeSummary */
+        MonthlyIncomeSummary: {
+            /** By Currency */
+            by_currency: components["schemas"]["MonthlyIncomeForCurrency"][];
+            /**
+             * Month
+             * Format: date
+             */
+            month: string;
+            /** Unknown Currency Transactions */
+            unknown_currency_transactions: number;
+        };
         /** PlaidWebhook */
         PlaidWebhook: {
             /** Error */
@@ -156,6 +231,58 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    available_cash_api_financial_state_available_cash_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailableCashSummary"];
+                };
+            };
+        };
+    };
+    monthly_income_api_financial_state_monthly_income_get: {
+        parameters: {
+            query?: {
+                /** @description Any date in the month to total. Defaults to the current UTC month. */
+                month?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthlyIncomeSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_api_health_get: {
         parameters: {
             query?: never;
