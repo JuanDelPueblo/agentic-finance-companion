@@ -1,22 +1,23 @@
-from uuid import UUID
-from decimal import Decimal
 from calendar import monthrange
-from datetime import datetime, timedelta, date
-from sqlalchemy import select
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Account, PlaidItem, Transaction
 from app.financial_state.schemas import (
-    AvailableCashForCurrency, 
+    AvailableCashForCurrency,
     AvailableCashSummary,
     MonthlyIncomeForCurrency,
-    MonthlyIncomeSummary
+    MonthlyIncomeSummary,
 )
+from app.models import Account, PlaidItem, Transaction
+
 
 def _oldest_sync_at(
-        accounts: list[tuple[Decimal | None, datetime | None]],
-        ) -> datetime | None:
+    accounts: list[tuple[Decimal | None, datetime | None]],
+) -> datetime | None:
     sync_times: list[datetime] = []
 
     for balance, synced_at in accounts:
@@ -35,9 +36,10 @@ async def _get_monthly_income_rows(
     user_id: UUID,
     month: date,
 ):
-    month_start = month.replace(day=1) # date(2026, 11, 1) 11 being the month
-    days_in_month = monthrange(month_start.year, month_start.month)[1] # (6,30) 6 Sunday, Month has 30 days
-    next_month = month_start + timedelta(days=days_in_month) 
+    month_start = month.replace(day=1)  # date(2026, 11, 1) 11 being the month
+    # monthrange returns (first weekday, days in month), e.g. (6, 30).
+    days_in_month = monthrange(month_start.year, month_start.month)[1]
+    next_month = month_start + timedelta(days=days_in_month)
 
     result = await session.execute(
         select(Account.currency_code, Transaction.amount)
@@ -50,7 +52,7 @@ async def _get_monthly_income_rows(
             Transaction.posted_date < next_month,
             Transaction.sync_state == "posted",
             Transaction.category == "INCOME",
-            Transaction.amount < 0, # Inflows are negative 
+            Transaction.amount < 0,  # Inflows are negative
         )
     )
 
@@ -65,10 +67,7 @@ async def get_available_cash(session: AsyncSession, user_id: UUID):
             PlaidItem.last_synced_at,
         )
         .join(PlaidItem, Account.item_id == PlaidItem.item_id)
-        .where(
-            PlaidItem.user_id == user_id,
-            Account.account_type == "depository"
-        )
+        .where(PlaidItem.user_id == user_id, Account.account_type == "depository")
     )
     # Returns a tuple with:
     #  ("CAD", Decimal("1250.75"), datetime(2026, 11, 8, 10, 0, tzinfo=UTC)),
@@ -88,16 +87,12 @@ async def get_available_cash(session: AsyncSession, user_id: UUID):
             accounts_by_currency[currency_code] = []
 
         # If currency seen, append to the currency list
-        accounts_by_currency[currency_code].append(
-            (available_cash, last_synced_at)
-        )
+        accounts_by_currency[currency_code].append((available_cash, last_synced_at))
 
     # Pack it in pydantic schemas
     by_currency_schema = []
     for currency_code, accounts in accounts_by_currency.items():
-        known_balances = [
-            balance for balance, _ in accounts if balance is not None
-        ]
+        known_balances = [balance for balance, _ in accounts if balance is not None]
         included_accounts = len(known_balances)
 
         # Accounts with unknown balance
@@ -111,18 +106,18 @@ async def get_available_cash(session: AsyncSession, user_id: UUID):
         by_currency_schema.append(
             AvailableCashForCurrency(
                 currency_code=currency_code,
-                amount = amount,
+                amount=amount,
                 included_accounts=included_accounts,
                 missing_balance_accounts=missing_balance_accounts,
-                oldest_sync_at=_oldest_sync_at(accounts)
+                oldest_sync_at=_oldest_sync_at(accounts),
             )
         )
 
     # Return the Available Cash Summary
     return AvailableCashSummary(
-        by_currency=by_currency_schema,
-        unknown_currency_accounts=unknown_currency_accounts
+        by_currency=by_currency_schema, unknown_currency_accounts=unknown_currency_accounts
     )
+
 
 async def get_monthly_income(
     session: AsyncSession,
