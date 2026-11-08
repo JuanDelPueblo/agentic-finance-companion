@@ -14,14 +14,14 @@ LOCAL_TEST_AUTH_SUBJECT = "local:plaid-sandbox"
 
 bearer = HTTPBearer()
 
-async def get_current_user_id(
-        session: Annotated[AsyncSession, Depends(get_session)],
-        auth: Annotated[HTTPAuthorizationCredentials, Depends(bearer)]
-        ) -> UUID:
 
-    # Remaining Validation and Getting the users after
-    # For now mock user is used change later
-    token = auth.credentials
+async def get_current_user_id(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    auth: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
+) -> UUID:
+
+    # TODO: validate auth.credentials and look up the real user.
+    # For now every request acts as the local test user.
 
     user = await session.get(User, LOCAL_TEST_USER_ID)
     if user is None:
