@@ -134,10 +134,8 @@ async def get_monthly_income(
             unknown_currency_transactions += 1
             continue
 
-        if currency_code not in amounts_by_currency:
-            amounts_by_currency[currency_code] = []
-        else:
-            amounts_by_currency[currency_code].append(-amount)
+        # Plaid reports inflows as negative amounts, so flip the sign.
+        amounts_by_currency.setdefault(currency_code, []).append(-amount)
 
     by_currency_schemas = [
         MonthlyIncomeForCurrency(

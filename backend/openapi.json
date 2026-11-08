@@ -1,6 +1,79 @@
 {
   "components": {
     "schemas": {
+      "AvailableCashForCurrency": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "currency_code": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency Code",
+            "type": "string"
+          },
+          "included_accounts": {
+            "minimum": 0.0,
+            "title": "Included Accounts",
+            "type": "integer"
+          },
+          "missing_balance_accounts": {
+            "minimum": 0.0,
+            "title": "Missing Balance Accounts",
+            "type": "integer"
+          },
+          "oldest_sync_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Sync At"
+          }
+        },
+        "required": [
+          "currency_code",
+          "amount",
+          "included_accounts",
+          "missing_balance_accounts",
+          "oldest_sync_at"
+        ],
+        "title": "AvailableCashForCurrency",
+        "type": "object"
+      },
+      "AvailableCashSummary": {
+        "properties": {
+          "by_currency": {
+            "items": {
+              "$ref": "#/components/schemas/AvailableCashForCurrency"
+            },
+            "title": "By Currency",
+            "type": "array"
+          },
+          "unknown_currency_accounts": {
+            "minimum": 0.0,
+            "title": "Unknown Currency Accounts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "by_currency",
+          "unknown_currency_accounts"
+        ],
+        "title": "AvailableCashSummary",
+        "type": "object"
+      },
       "DatabaseStatus": {
         "additionalProperties": false,
         "properties": {
@@ -132,6 +205,59 @@
         "title": "LinkedItem",
         "type": "object"
       },
+      "MonthlyIncomeForCurrency": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency_code": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency Code",
+            "type": "string"
+          },
+          "included_transactions": {
+            "minimum": 0.0,
+            "title": "Included Transactions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency_code",
+          "amount",
+          "included_transactions"
+        ],
+        "title": "MonthlyIncomeForCurrency",
+        "type": "object"
+      },
+      "MonthlyIncomeSummary": {
+        "properties": {
+          "by_currency": {
+            "items": {
+              "$ref": "#/components/schemas/MonthlyIncomeForCurrency"
+            },
+            "title": "By Currency",
+            "type": "array"
+          },
+          "month": {
+            "format": "date",
+            "title": "Month",
+            "type": "string"
+          },
+          "unknown_currency_transactions": {
+            "minimum": 0.0,
+            "title": "Unknown Currency Transactions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "by_currency",
+          "unknown_currency_transactions"
+        ],
+        "title": "MonthlyIncomeSummary",
+        "type": "object"
+      },
       "PlaidWebhook": {
         "properties": {
           "error": {
@@ -227,6 +353,89 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/financial-state/available-cash": {
+      "get": {
+        "operationId": "available_cash_api_financial_state_available_cash_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailableCashSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Available Cash",
+        "tags": [
+          "financial-state"
+        ]
+      }
+    },
+    "/api/financial-state/monthly-income": {
+      "get": {
+        "operationId": "monthly_income_api_financial_state_monthly_income_get",
+        "parameters": [
+          {
+            "description": "Any date in the month to total. Defaults to the current UTC month.",
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Any date in the month to total. Defaults to the current UTC month.",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyIncomeSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Monthly Income",
+        "tags": [
+          "financial-state"
+        ]
+      }
+    },
     "/api/health": {
       "get": {
         "operationId": "health_api_health_get",
