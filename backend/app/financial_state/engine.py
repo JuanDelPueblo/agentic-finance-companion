@@ -1,12 +1,18 @@
 from uuid import UUID
 from decimal import Decimal
-from datetime import datetime
+from calendar import monthrange
+from datetime import datetime, timedelta, date
 from sqlalchemy import select
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Account, PlaidItem
-from app.financial_state.schemas import AvailableCashForCurrency, AvailableCashSummary
+from app.models import Account, PlaidItem, Transaction
+from app.financial_state.schemas import (
+    AvailableCashForCurrency, 
+    AvailableCashSummary,
+    MonthlyIncomeForCurrency,
+    MonthlyIncomeSummary
+)
 
 def _oldest_sync_at(
         accounts: list[tuple[Decimal | None, datetime | None]],
@@ -22,6 +28,34 @@ def _oldest_sync_at(
         sync_times.append(synced_at)
 
     return min(sync_times, default=None)
+
+
+async def _get_monthly_income_rows(
+    session: AsyncSession,
+    user_id: UUID,
+    month: date,
+):
+    month_start = month.replace(day=1) # date(2026, 11, 1) 11 being the month
+    days_in_month = monthrange(month_start.year, month_start.month)[1] # (6,30) 6 Sunday, Month has 30 days
+    next_month = month_start + timedelta(days=days_in_month) 
+
+    result = await session.execute(
+        select(Account.currency_code, Transaction.amount)
+        .select_from(Transaction)
+        .join(Account, Transaction.account_id == Account.account_id)
+        .join(PlaidItem, Account.item_id == PlaidItem.item_id)
+        .where(
+            PlaidItem.user_id == user_id,
+            Transaction.posted_date >= month_start,
+            Transaction.posted_date < next_month,
+            Transaction.sync_state == "posted",
+            Transaction.category == "INCOME",
+            Transaction.amount < 0, # Inflows are negative 
+        )
+    )
+
+    return result.all()
+
 
 async def get_available_cash(session: AsyncSession, user_id: UUID):
     result = await session.execute(
@@ -90,4 +124,37 @@ async def get_available_cash(session: AsyncSession, user_id: UUID):
         unknown_currency_accounts=unknown_currency_accounts
     )
 
+async def get_monthly_income(
+    session: AsyncSession,
+    user_id: UUID,
+    month: date,
+) -> MonthlyIncomeSummary:
+    rows = await _get_monthly_income_rows(session, user_id, month)
 
+    amounts_by_currency: dict[str, list[Decimal]] = {}
+    unknown_currency_transactions = 0
+
+    for currency_code, amount in rows:
+        if currency_code is None:
+            unknown_currency_transactions += 1
+            continue
+
+        if currency_code not in amounts_by_currency:
+            amounts_by_currency[currency_code] = []
+        else:
+            amounts_by_currency[currency_code].append(-amount)
+
+    by_currency_schemas = [
+        MonthlyIncomeForCurrency(
+            currency_code=currency_code,
+            amount=sum(amounts, Decimal("0")),
+            included_transactions=len(amounts),
+        )
+        for currency_code, amounts in amounts_by_currency.items()
+    ]
+
+    return MonthlyIncomeSummary(
+        month=month.replace(day=1),
+        by_currency=by_currency_schemas,
+        unknown_currency_transactions=unknown_currency_transactions,
+    )
