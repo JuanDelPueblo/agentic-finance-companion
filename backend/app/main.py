@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import get_engine
+from app.plaid.router import router as plaid_router
 
 
 class DatabaseStatus(BaseModel):
@@ -29,6 +30,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Agentic Finance Companion API", version="0.1.0", lifespan=lifespan)
+app.include_router(plaid_router)
 
 
 @app.get("/api/health", tags=["system"])
