@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,8 +17,11 @@ class Settings(BaseSettings):
     plaid_webhook_url: str | None = None
     token_encryption_key: SecretStr | None = None
 
+    llm_provider: Literal["anthropic", "openai"] = "anthropic"
+    # Leave unset to use the provider's default model (see app/llm.py).
+    llm_model: str | None = None
     anthropic_api_key: SecretStr | None = None
-    llm_model: str = "claude-haiku-5-5"
+    openai_api_key: SecretStr | None = None
 
 
 @lru_cache
