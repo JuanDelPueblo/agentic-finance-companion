@@ -338,8 +338,7 @@ async def get_category_breakdown(
     by_currency_schemas = []
     for currency_code, categories in spending_by_currency.items():
         category_totals = {
-            category: sum(amounts, Decimal("0"))
-            for category, amounts in categories.items()
+            category: sum(amounts, Decimal("0")) for category, amounts in categories.items()
         }
         currency_total = sum(category_totals.values(), Decimal("0"))
 

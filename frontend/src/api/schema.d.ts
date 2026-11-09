@@ -175,8 +175,8 @@ export interface components {
              */
             item_id: string;
         };
-        /** MonthlyIncomeForCurrency */
-        MonthlyIncomeForCurrency: {
+        /** MonthlyAmountForCurrency */
+        MonthlyAmountForCurrency: {
             /** Amount */
             amount: string;
             /** Currency Code */
@@ -184,10 +184,10 @@ export interface components {
             /** Included Transactions */
             included_transactions: number;
         };
-        /** MonthlyIncomeSummary */
-        MonthlyIncomeSummary: {
+        /** MonthlyAmountSummary */
+        MonthlyAmountSummary: {
             /** By Currency */
-            by_currency: components["schemas"]["MonthlyIncomeForCurrency"][];
+            by_currency: components["schemas"]["MonthlyAmountForCurrency"][];
             /**
              * Month
              * Format: date
@@ -269,7 +269,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MonthlyIncomeSummary"];
+                    "application/json": components["schemas"]["MonthlyAmountSummary"];
                 };
             };
             /** @description Validation Error */
