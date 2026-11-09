@@ -205,7 +205,7 @@
         "title": "LinkedItem",
         "type": "object"
       },
-      "MonthlyIncomeForCurrency": {
+      "MonthlyAmountForCurrency": {
         "properties": {
           "amount": {
             "title": "Amount",
@@ -227,14 +227,14 @@
           "amount",
           "included_transactions"
         ],
-        "title": "MonthlyIncomeForCurrency",
+        "title": "MonthlyAmountForCurrency",
         "type": "object"
       },
-      "MonthlyIncomeSummary": {
+      "MonthlyAmountSummary": {
         "properties": {
           "by_currency": {
             "items": {
-              "$ref": "#/components/schemas/MonthlyIncomeForCurrency"
+              "$ref": "#/components/schemas/MonthlyAmountForCurrency"
             },
             "title": "By Currency",
             "type": "array"
@@ -255,7 +255,7 @@
           "by_currency",
           "unknown_currency_transactions"
         ],
-        "title": "MonthlyIncomeSummary",
+        "title": "MonthlyAmountSummary",
         "type": "object"
       },
       "PlaidWebhook": {
@@ -408,7 +408,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MonthlyIncomeSummary"
+                  "$ref": "#/components/schemas/MonthlyAmountSummary"
                 }
               }
             },
