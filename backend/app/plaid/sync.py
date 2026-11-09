@@ -100,7 +100,11 @@ async def _sync_transactions(session: AsyncSession, item: PlaidItem, access_toke
             row.amount = Decimal(str(transaction["amount"]))
             row.posted_date = transaction["date"]
             row.merchant_name = merchant[:160] if merchant else None
-            row.category = (transaction.get("personal_finance_category") or {}).get("primary")
+            category = transaction.get("personal_finance_category") or {}
+            row.category = category.get("primary")
+            row.category_detailed = category.get("detailed")
+            # Plaid fills this only for some institutions; it is None for the rest.
+            row.transaction_code = transaction.get("transaction_code")
             row.sync_state = "pending" if transaction["pending"] else "posted"
             row.updated_at = datetime.now(UTC)
 
