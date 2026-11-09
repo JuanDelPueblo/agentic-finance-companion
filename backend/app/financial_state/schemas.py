@@ -17,13 +17,31 @@ class AvailableCashSummary(BaseModel):
     unknown_currency_accounts: NonNegativeInt
 
 
-class MonthlyIncomeForCurrency(BaseModel):
+class MonthlyAmountForCurrency(BaseModel):
     currency_code: str = Field(pattern=r"^[A-Z]{3}$")
     amount: Decimal
     included_transactions: NonNegativeInt
 
 
-class MonthlyIncomeSummary(BaseModel):
+class MonthlyAmountSummary(BaseModel):
     month: date  # First day of requested month
-    by_currency: list[MonthlyIncomeForCurrency]
+    by_currency: list[MonthlyAmountForCurrency]
+    unknown_currency_transactions: NonNegativeInt
+
+
+class SpendingCategory(BaseModel):
+    category: str
+    amount: Decimal
+    included_transactions: NonNegativeInt
+    share_percent: float | None
+
+
+class CategoryBreakdownForCurrency(BaseModel):
+    currency_code: str = Field(pattern=r"^[A-Z]{3}$")
+    categories: list[SpendingCategory]
+
+
+class CategoryBreakdownSummary(BaseModel):
+    month: date  # First day of requested month
+    by_currency: list[CategoryBreakdownForCurrency]
     unknown_currency_transactions: NonNegativeInt

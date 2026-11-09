@@ -1,6 +1,7 @@
 from calendar import monthrange
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import select
@@ -9,8 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.financial_state.schemas import (
     AvailableCashForCurrency,
     AvailableCashSummary,
-    MonthlyIncomeForCurrency,
-    MonthlyIncomeSummary,
+    CategoryBreakdownForCurrency,
+    CategoryBreakdownSummary,
+    MonthlyAmountForCurrency,
+    MonthlyAmountSummary,
+    SpendingCategory,
 )
 from app.models import Account, PlaidItem, Transaction
 
@@ -31,18 +35,25 @@ def _oldest_sync_at(
     return min(sync_times, default=None)
 
 
-async def _get_monthly_income_rows(
+async def _get_monthly_transaction_rows(
     session: AsyncSession,
     user_id: UUID,
     month: date,
+    *,
+    mode: Literal["income", "spending"],
 ):
     month_start = month.replace(day=1)  # date(2026, 11, 1) 11 being the month
     # monthrange returns (first weekday, days in month), e.g. (6, 30).
     days_in_month = monthrange(month_start.year, month_start.month)[1]
     next_month = month_start + timedelta(days=days_in_month)
 
-    result = await session.execute(
-        select(Account.currency_code, Transaction.amount)
+    query = (
+        select(
+            Account.currency_code,
+            Transaction.amount,
+            Transaction.category,
+            Transaction.transaction_code,
+        )
         .select_from(Transaction)
         .join(Account, Transaction.account_id == Account.account_id)
         .join(PlaidItem, Account.item_id == PlaidItem.item_id)
@@ -51,10 +62,16 @@ async def _get_monthly_income_rows(
             Transaction.posted_date >= month_start,
             Transaction.posted_date < next_month,
             Transaction.sync_state == "posted",
-            Transaction.category == "INCOME",
-            Transaction.amount < 0,  # Inflows are negative
         )
     )
+
+    if mode == "income":
+        query = query.where(
+            Transaction.category == "INCOME",
+            Transaction.amount < 0,
+        )
+
+    result = await session.execute(query)
 
     return result.all()
 
@@ -123,13 +140,13 @@ async def get_monthly_income(
     session: AsyncSession,
     user_id: UUID,
     month: date,
-) -> MonthlyIncomeSummary:
-    rows = await _get_monthly_income_rows(session, user_id, month)
+) -> MonthlyAmountSummary:
+    rows = await _get_monthly_transaction_rows(session, user_id, month, mode="income")
 
     amounts_by_currency: dict[str, list[Decimal]] = {}
     unknown_currency_transactions = 0
 
-    for currency_code, amount in rows:
+    for currency_code, amount, _, _ in rows:
         if currency_code is None:
             unknown_currency_transactions += 1
             continue
@@ -138,7 +155,7 @@ async def get_monthly_income(
         amounts_by_currency.setdefault(currency_code, []).append(-amount)
 
     by_currency_schemas = [
-        MonthlyIncomeForCurrency(
+        MonthlyAmountForCurrency(
             currency_code=currency_code,
             amount=sum(amounts, Decimal("0")),
             included_transactions=len(amounts),
@@ -146,8 +163,108 @@ async def get_monthly_income(
         for currency_code, amounts in amounts_by_currency.items()
     ]
 
-    return MonthlyIncomeSummary(
+    return MonthlyAmountSummary(
         month=month.replace(day=1),
         by_currency=by_currency_schemas,
+        unknown_currency_transactions=unknown_currency_transactions,
+    )
+
+
+async def _group_monthly_spending(
+    session: AsyncSession,
+    user_id: UUID,
+    month: date,
+) -> tuple[dict[str, dict[str, list[Decimal]]], int]:
+    rows = await _get_monthly_transaction_rows(session, user_id, month, mode="spending")
+
+    excluded_categories = {"INCOME", "TRANSFER_IN", "TRANSFER_OUT"}
+    spending_by_currency: dict[str, dict[str, list[Decimal]]] = {}
+    unknown_currency_transactions = 0
+
+    for currency_code, amount, category, transaction_code in rows:
+        is_refund = amount < 0 and transaction_code == "refund"
+
+        if not is_refund and (amount <= 0 or category in excluded_categories):
+            continue
+
+        if currency_code is None:
+            unknown_currency_transactions += 1
+            continue
+
+        category_key = category or "UNCATEGORIZED"
+        if category_key in excluded_categories:
+            category_key = "UNCATEGORIZED"
+
+        categories = spending_by_currency.setdefault(currency_code, {})
+        categories.setdefault(category_key, []).append(amount)
+
+    return spending_by_currency, unknown_currency_transactions
+
+
+async def get_monthly_spending(
+    session: AsyncSession,
+    user_id: UUID,
+    month: date,
+) -> MonthlyAmountSummary:
+    spending_by_currency, unknown_currency_transactions = await _group_monthly_spending(
+        session, user_id, month
+    )
+
+    by_currency = []
+    for currency_code, categories in spending_by_currency.items():
+        amounts = [
+            amount for category_amounts in categories.values() for amount in category_amounts
+        ]
+        by_currency.append(
+            MonthlyAmountForCurrency(
+                currency_code=currency_code,
+                amount=sum(amounts, Decimal("0")),
+                included_transactions=len(amounts),
+            )
+        )
+
+    return MonthlyAmountSummary(
+        month=month.replace(day=1),
+        by_currency=by_currency,
+        unknown_currency_transactions=unknown_currency_transactions,
+    )
+
+
+async def get_category_breakdown(
+    session: AsyncSession,
+    user_id: UUID,
+    month: date,
+) -> CategoryBreakdownSummary:
+    spending_by_currency, unknown_currency_transactions = await _group_monthly_spending(
+        session, user_id, month
+    )
+
+    by_currency = []
+    for currency_code, categories in spending_by_currency.items():
+        category_totals = {
+            category: sum(amounts, Decimal("0"))
+            for category, amounts in categories.items()
+        }
+        currency_total = sum(category_totals.values(), Decimal("0"))
+
+        category_rows = []
+        for category, amount in category_totals.items():
+            share_percent = float(amount / currency_total * 100) if currency_total else None
+            category_rows.append(
+                SpendingCategory(
+                    category=category,
+                    amount=amount,
+                    included_transactions=len(categories[category]),
+                    share_percent=share_percent,
+                )
+            )
+
+        by_currency.append(
+            CategoryBreakdownForCurrency(currency_code=currency_code, categories=category_rows)
+        )
+
+    return CategoryBreakdownSummary(
+        month=month.replace(day=1),
+        by_currency=by_currency,
         unknown_currency_transactions=unknown_currency_transactions,
     )
