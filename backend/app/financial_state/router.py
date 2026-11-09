@@ -7,8 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.dependencies import get_current_user_id
-from app.financial_state.engine import get_available_cash, get_monthly_income
-from app.financial_state.schemas import AvailableCashSummary, MonthlyAmountSummary
+
+from app.financial_state.engine import (get_available_cash, 
+                                        get_monthly_income,
+                                        get_credit_balance_owed)
+from app.financial_state.schemas import (AvailableCashSummary, 
+                                         MonthlyAmountSummary, 
+                                         CreditBalanceOwedSummary)
 
 router = APIRouter(prefix="/api/financial-state", tags=["financial-state"])
 
@@ -22,12 +27,9 @@ async def available_cash(user_id: CurrentUserId, session: Session) -> AvailableC
 
 
 @router.get("/monthly-income")
-async def monthly_income(
-    user_id: CurrentUserId,
-    session: Session,
-    month: Annotated[
-        date | None,
-        Query(description="Any date in the month to total. Defaults to the current UTC month."),
-    ] = None,
-) -> MonthlyAmountSummary:
+async def monthly_income(user_id: CurrentUserId, session: Session, month: date | None) -> MonthlyAmountSummary:
     return await get_monthly_income(session, user_id, month or datetime.now(UTC).date())
+
+@router.get("/credit-balance-owned")
+async def credit_balance_owned(session: Session, user_id: CurrentUserId) -> CreditBalanceOwedSummary:
+    return await get_credit_balance_owed
