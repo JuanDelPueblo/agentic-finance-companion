@@ -11,6 +11,8 @@ from app.financial_state.schemas import (
     AvailableCashSummary,
     CategoryBreakdownForCurrency,
     CategoryBreakdownSummary,
+    CreditBalanceOwedForCurrency,
+    CreditBalanceOwedSummary,
     MonthlyAmountForCurrency,
     MonthlyAmountSummary,
     MonthlyNetCashFlowForCurrency,
@@ -136,6 +138,47 @@ async def get_available_cash(session: AsyncSession, user_id: UUID):
     # Return the Available Cash Summary
     return AvailableCashSummary(
         by_currency=by_currency_schemas, unknown_currency_accounts=unknown_currency_accounts
+    )
+
+
+async def get_credit_balance_owed(session: AsyncSession, user_id: UUID) -> CreditBalanceOwedSummary:
+    result = await session.execute(
+        select(
+            Account.currency_code,
+            Account.current_balance,
+            PlaidItem.last_synced_at,
+        )
+        .join(PlaidItem, Account.item_id == PlaidItem.item_id)
+        .where(PlaidItem.user_id == user_id, Account.account_type == "credit")
+    )
+
+    accounts_by_currency: dict[str, list[tuple[Decimal | None, datetime | None]]] = {}
+    unknown_currency_accounts = 0
+    for currency_code, balance, last_synced_at in result.all():
+        if currency_code is None:
+            unknown_currency_accounts += 1
+            continue
+
+        accounts_by_currency.setdefault(currency_code, []).append((balance, last_synced_at))
+
+    zero = Decimal("0")
+    by_currency_schemas = []
+    for currency_code, accounts in sorted(accounts_by_currency.items()):
+        known_balances = [balance for balance, _ in accounts if balance is not None]
+        amount = sum((max(balance, zero) for balance in known_balances), zero)
+        by_currency_schemas.append(
+            CreditBalanceOwedForCurrency(
+                currency_code=currency_code,
+                amount=amount if known_balances else None,
+                included_accounts=len(known_balances),
+                missing_balance_accounts=len(accounts) - len(known_balances),
+                oldest_sync_at=_oldest_sync_at(accounts),
+            )
+        )
+
+    return CreditBalanceOwedSummary(
+        by_currency=by_currency_schemas,
+        unknown_currency_accounts=unknown_currency_accounts,
     )
 
 

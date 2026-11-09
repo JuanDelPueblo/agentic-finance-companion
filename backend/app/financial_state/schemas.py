@@ -17,6 +17,19 @@ class AvailableCashSummary(BaseModel):
     unknown_currency_accounts: NonNegativeInt
 
 
+class CreditBalanceOwedForCurrency(BaseModel):
+    currency_code: str = Field(pattern=r"^[A-Z]{3}$")
+    amount: Decimal | None
+    included_accounts: NonNegativeInt
+    missing_balance_accounts: NonNegativeInt
+    oldest_sync_at: datetime | None
+
+
+class CreditBalanceOwedSummary(BaseModel):
+    by_currency: list[CreditBalanceOwedForCurrency]
+    unknown_currency_accounts: NonNegativeInt
+
+
 class MonthlyAmountForCurrency(BaseModel):
     currency_code: str = Field(pattern=r"^[A-Z]{3}$")
     amount: Decimal
