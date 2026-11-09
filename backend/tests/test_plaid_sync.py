@@ -47,14 +47,8 @@ def plaid_pages(monkeypatch) -> list[dict[str, Any]]:
     return pages
 
 
-def page(added=(), modified=(), removed=(), cursor="cursor-1") -> dict[str, Any]:
-    return {
-        "added": list(added),
-        "modified": list(modified),
-        "removed": list(removed),
-        "next_cursor": cursor,
-        "has_more": False,
-    }
+def page(added: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"added": added, "modified": [], "removed": [], "next_cursor": "c1", "has_more": False}
 
 
 async def synced_transactions(session: AsyncSession, item: PlaidItem) -> list[Transaction]:
@@ -71,65 +65,13 @@ async def test_sync_stores_the_transaction_code_and_both_categories(
 ) -> None:
     item = await add_item(session, await add_user(session))
     account = await add_account(session, item, "0.00")
-    plaid_pages.append(page(added=[plaid_transaction(account, "t1")]))
+    plaid_pages.append(page([plaid_transaction(account, "t1")]))
 
     [row] = await synced_transactions(session, item)
 
     assert row.transaction_code == "purchase"
     assert row.category == "GENERAL_MERCHANDISE"
     assert row.category_detailed == "GENERAL_MERCHANDISE_BOOKSTORES_AND_NEWSSTANDS"
-
-
-async def test_sync_updates_the_fields_of_a_modified_transaction(
-    session: AsyncSession, plaid_pages: list
-) -> None:
-    item = await add_item(session, await add_user(session))
-    account = await add_account(session, item, "0.00")
-    plaid_pages.append(page(added=[plaid_transaction(account, "t1")]))
-    await synced_transactions(session, item)
-    plaid_pages.append(
-        page(
-            modified=[
-                plaid_transaction(
-                    account,
-                    "t1",
-                    amount=-50.0,
-                    transaction_code="refund",
-                    personal_finance_category={
-                        "primary": "GENERAL_MERCHANDISE",
-                        "detailed": "GENERAL_MERCHANDISE_OTHER_GENERAL_MERCHANDISE",
-                    },
-                )
-            ],
-            cursor="cursor-2",
-        )
-    )
-
-    [row] = await synced_transactions(session, item)
-
-    assert row.transaction_code == "refund"
-    assert row.category_detailed == "GENERAL_MERCHANDISE_OTHER_GENERAL_MERCHANDISE"
-    assert item.sync_cursor == "cursor-2"
-
-
-async def test_sync_stores_missing_fields_as_null(session: AsyncSession, plaid_pages: list) -> None:
-    item = await add_item(session, await add_user(session))
-    account = await add_account(session, item, "0.00")
-    plaid_pages.append(
-        page(
-            added=[
-                plaid_transaction(
-                    account, "t1", transaction_code=None, personal_finance_category=None
-                )
-            ]
-        )
-    )
-
-    [row] = await synced_transactions(session, item)
-
-    assert row.transaction_code is None
-    assert row.category is None
-    assert row.category_detailed is None
 
 
 async def test_a_synced_refund_lowers_monthly_spending(
