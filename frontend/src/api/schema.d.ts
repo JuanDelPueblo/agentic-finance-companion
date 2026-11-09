@@ -21,6 +21,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/financial-state/category-breakdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Category Breakdown */
+        get: operations["category_breakdown_api_financial_state_category_breakdown_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financial-state/credit-balance-owed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Credit Balance Owed */
+        get: operations["credit_balance_owed_api_financial_state_credit_balance_owed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/financial-state/monthly-income": {
         parameters: {
             query?: never;
@@ -30,6 +64,40 @@ export interface paths {
         };
         /** Monthly Income */
         get: operations["monthly_income_api_financial_state_monthly_income_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financial-state/net-monthly-cashflow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Net Monthly Cashflow */
+        get: operations["net_monthly_cashflow_api_financial_state_net_monthly_cashflow_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financial-state/net-monthly-spending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Net Monthly Spending */
+        get: operations["net_monthly_spending_api_financial_state_net_monthly_spending_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -130,6 +198,45 @@ export interface components {
             /** Unknown Currency Accounts */
             unknown_currency_accounts: number;
         };
+        /** CategoryBreakdownForCurrency */
+        CategoryBreakdownForCurrency: {
+            /** Categories */
+            categories: components["schemas"]["SpendingCategory"][];
+            /** Currency Code */
+            currency_code: string;
+        };
+        /** CategoryBreakdownSummary */
+        CategoryBreakdownSummary: {
+            /** By Currency */
+            by_currency: components["schemas"]["CategoryBreakdownForCurrency"][];
+            /**
+             * Month
+             * Format: date
+             */
+            month: string;
+            /** Unknown Currency Transactions */
+            unknown_currency_transactions: number;
+        };
+        /** CreditBalanceOwedForCurrency */
+        CreditBalanceOwedForCurrency: {
+            /** Amount */
+            amount: string | null;
+            /** Currency Code */
+            currency_code: string;
+            /** Included Accounts */
+            included_accounts: number;
+            /** Missing Balance Accounts */
+            missing_balance_accounts: number;
+            /** Oldest Sync At */
+            oldest_sync_at: string | null;
+        };
+        /** CreditBalanceOwedSummary */
+        CreditBalanceOwedSummary: {
+            /** By Currency */
+            by_currency: components["schemas"]["CreditBalanceOwedForCurrency"][];
+            /** Unknown Currency Accounts */
+            unknown_currency_accounts: number;
+        };
         /** DatabaseStatus */
         DatabaseStatus: {
             /** Connected */
@@ -175,8 +282,8 @@ export interface components {
              */
             item_id: string;
         };
-        /** MonthlyIncomeForCurrency */
-        MonthlyIncomeForCurrency: {
+        /** MonthlyAmountForCurrency */
+        MonthlyAmountForCurrency: {
             /** Amount */
             amount: string;
             /** Currency Code */
@@ -184,10 +291,35 @@ export interface components {
             /** Included Transactions */
             included_transactions: number;
         };
-        /** MonthlyIncomeSummary */
-        MonthlyIncomeSummary: {
+        /** MonthlyAmountSummary */
+        MonthlyAmountSummary: {
             /** By Currency */
-            by_currency: components["schemas"]["MonthlyIncomeForCurrency"][];
+            by_currency: components["schemas"]["MonthlyAmountForCurrency"][];
+            /**
+             * Month
+             * Format: date
+             */
+            month: string;
+            /** Unknown Currency Transactions */
+            unknown_currency_transactions: number;
+        };
+        /** MonthlyNetCashFlowForCurrency */
+        MonthlyNetCashFlowForCurrency: {
+            /** Currency Code */
+            currency_code: string;
+            /** Included Transactions */
+            included_transactions: number;
+            /** Income */
+            income: string;
+            /** Net Cash Flow */
+            net_cash_flow: string;
+            /** Spending */
+            spending: string;
+        };
+        /** MonthlyNetCashFlowSummary */
+        MonthlyNetCashFlowSummary: {
+            /** By Currency */
+            by_currency: components["schemas"]["MonthlyNetCashFlowForCurrency"][];
             /**
              * Month
              * Format: date
@@ -208,6 +340,17 @@ export interface components {
             webhook_code: string;
             /** Webhook Type */
             webhook_type: string;
+        };
+        /** SpendingCategory */
+        SpendingCategory: {
+            /** Amount */
+            amount: string;
+            /** Category */
+            category: string;
+            /** Included Transactions */
+            included_transactions: number;
+            /** Share Percent */
+            share_percent: number | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -251,10 +394,9 @@ export interface operations {
             };
         };
     };
-    monthly_income_api_financial_state_monthly_income_get: {
+    category_breakdown_api_financial_state_category_breakdown_get: {
         parameters: {
             query?: {
-                /** @description Any date in the month to total. Defaults to the current UTC month. */
                 month?: string | null;
             };
             header?: never;
@@ -269,7 +411,120 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MonthlyIncomeSummary"];
+                    "application/json": components["schemas"]["CategoryBreakdownSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    credit_balance_owed_api_financial_state_credit_balance_owed_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditBalanceOwedSummary"];
+                };
+            };
+        };
+    };
+    monthly_income_api_financial_state_monthly_income_get: {
+        parameters: {
+            query?: {
+                month?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthlyAmountSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    net_monthly_cashflow_api_financial_state_net_monthly_cashflow_get: {
+        parameters: {
+            query?: {
+                month?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthlyNetCashFlowSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    net_monthly_spending_api_financial_state_net_monthly_spending_get: {
+        parameters: {
+            query?: {
+                month?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthlyAmountSummary"];
                 };
             };
             /** @description Validation Error */
