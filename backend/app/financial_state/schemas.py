@@ -29,6 +29,20 @@ class MonthlyAmountSummary(BaseModel):
     unknown_currency_transactions: NonNegativeInt
 
 
+class MonthlyNetCashFlowForCurrency(BaseModel):
+    currency_code: str = Field(pattern=r"^[A-Z]{3}$")
+    income: Decimal
+    spending: Decimal
+    net_cash_flow: Decimal
+    included_transactions: NonNegativeInt
+
+
+class MonthlyNetCashFlowSummary(BaseModel):
+    month: date  # First day of requested month
+    by_currency: list[MonthlyNetCashFlowForCurrency]
+    unknown_currency_transactions: NonNegativeInt
+
+
 class SpendingCategory(BaseModel):
     category: str
     amount: Decimal
