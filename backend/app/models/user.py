@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -20,12 +20,14 @@ if TYPE_CHECKING:
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (UniqueConstraint("email", name="uq_users_email"),)
 
     user_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     auth_subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
     email: Mapped[str] = mapped_column(String(255))
     display_name: Mapped[str | None] = mapped_column(String(120))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
 
     plaid_items: Mapped[list[PlaidItem]] = relationship(back_populates="user")
     context_entries: Mapped[list[UserContext]] = relationship(back_populates="user")

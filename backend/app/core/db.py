@@ -12,6 +12,11 @@ class Settings(BaseSettings):
 
     database_url: str
 
+    # Backend JWT Token Functionality
+    secret_key: SecretStr | None = None
+    algorithm: Literal["HS256"] = "HS256"
+    access_token_expire_min: int = 60
+
     plaid_client_id: str | None = None
     plaid_sandbox_secret: SecretStr | None = None
     plaid_webhook_url: str | None = None
@@ -25,9 +30,14 @@ class Settings(BaseSettings):
 
 
 @lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+@lru_cache
 def get_engine() -> AsyncEngine:
     return create_async_engine(
-        Settings().database_url,
+        get_settings().database_url,
         pool_pre_ping=True,
         pool_size=10,
         max_overflow=10,

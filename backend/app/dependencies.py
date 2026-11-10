@@ -2,40 +2,37 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import get_session
+from app.core.db import get_session
+from app.core.security import decode_access_token
 from app.models import User
 
-# The local test user that every request acts as until real sign-in exists.
-LOCAL_TEST_USER_ID = UUID("166bb3fb-dc61-4786-b5b5-7d049c7f927a")
-LOCAL_TEST_AUTH_SUBJECT = "local:plaid-sandbox"
-
-bearer = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 
-async def get_current_user_id(
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
     session: Annotated[AsyncSession, Depends(get_session)],
-    auth: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
-) -> UUID:
-
-    # TODO: validate auth.credentials and look up the real user.
-    # For now every request acts as the local test user.
-
-    user = await session.get(User, LOCAL_TEST_USER_ID)
-    if user is None:
-        user = User(
-            user_id=LOCAL_TEST_USER_ID,
-            auth_subject=LOCAL_TEST_AUTH_SUBJECT,
-            email="sandbox@example.com",
-            display_name="Local test user",
-        )
-        session.add(user)
-        await session.commit()
-    elif user.auth_subject != LOCAL_TEST_AUTH_SUBJECT:
+) -> User:
+    email = decode_access_token(token)
+    if email is None:
         raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "Another user already has the local test user's ID"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
+    user = await session.scalar(select(User).where(User.email == email))
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
 
+
+async def get_current_user_id(user: Annotated[User, Depends(get_current_user)]) -> UUID:
     return user.user_id

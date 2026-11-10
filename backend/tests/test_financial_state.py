@@ -7,7 +7,8 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import get_session
+from app.core.db import get_session
+from app.core.security import hash_password
 from app.dependencies import get_current_user_id
 from app.financial_state.engine import get_available_cash, get_monthly_income
 from app.main import app
@@ -16,10 +17,11 @@ from app.models import Account, PlaidItem, Transaction, User
 pytestmark = pytest.mark.anyio
 
 _refs = count()
+TEST_PASSWORD_HASH = hash_password("test-password-123")
 
 
 async def add_user(session: AsyncSession) -> User:
-    user = User(email=f"user{next(_refs)}@example.com")
+    user = User(email=f"user{next(_refs)}@example.com", hashed_password=TEST_PASSWORD_HASH)
     session.add(user)
     await session.flush()
     return user

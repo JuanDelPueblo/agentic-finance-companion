@@ -16,7 +16,7 @@ from anthropic import AsyncAnthropic, transform_schema
 from openai import AsyncOpenAI
 from pydantic import BaseModel, ValidationError
 
-from app.db import Settings
+from app.core.db import Settings
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import Settings, get_session
+from app.core.db import Settings, get_session
 from app.dependencies import get_current_user_id
 from app.models import PlaidItem, WebhookEvent
 from app.plaid.client import call, decrypt_token, get_plaid

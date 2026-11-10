@@ -9,7 +9,7 @@ from cryptography.fernet import Fernet
 from fastapi import HTTPException
 from plaid.api.plaid_api import PlaidApi
 
-from app.db import Settings
+from app.core.db import Settings
 
 
 class PlaidError(HTTPException):

@@ -15,7 +15,7 @@ from plaid.model.products import Products
 from plaid.model.sandbox_public_token_create_request import SandboxPublicTokenCreateRequest
 from sqlalchemy import func, select
 
-from app.db import get_engine, get_session
+from app.core.db import get_engine, get_session
 from app.dependencies import get_current_user_id
 from app.models import Account, Transaction
 from app.plaid.client import call, get_plaid
