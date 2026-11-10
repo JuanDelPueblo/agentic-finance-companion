@@ -1,11 +1,25 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, expect, it } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { App } from './App'
 import { comparePlan, freshDemo, getPlanOverview, loadDemo, monthlyEstimate, storageKey, toCents } from './demo'
 
+afterEach(() => vi.unstubAllGlobals())
+
 beforeEach(() => localStorage.clear())
+
+it('shows the backend status', async () => {
+  const health = {
+    status: 'ok',
+    database: { connected: true },
+  }
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json(health)))
+
+  render(<App />)
+
+  expect(await screen.findByText(/Backend: ok/)).toHaveTextContent('Database: connected')
+})
 
 it('opens the sample bank setup from the welcome screen', async () => {
   const user = userEvent.setup()

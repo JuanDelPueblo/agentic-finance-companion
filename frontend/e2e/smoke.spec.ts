@@ -1,5 +1,19 @@
 import { expect, test } from '@playwright/test'
 
+// The API is mocked, so this test needs no backend.
+test('home page shows the backend status', async ({ page }) => {
+  await page.route('**/api/health', (route) =>
+    route.fulfill({
+      json: {
+        status: 'ok',
+        database: { connected: true },
+      },
+    }),
+  )
+  await page.goto('/')
+  await expect(page.getByText('Backend: ok')).toBeVisible()
+})
+
 test('completes the sample flow and keeps the accepted plan after reload', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Welcome to Agentic Finances Companion' })).toBeVisible()

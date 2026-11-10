@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
+import { api, type Schemas } from './api/client'
 import { ScheduleEditor } from './ScheduleEditor'
 import { Overview, PlanReview } from './PlanResults'
 import {
@@ -7,6 +8,27 @@ import {
   type Allocation, type Step,
 } from './demo'
 import './app.css'
+
+function BackendStatus() {
+  const [health, setHealth] = useState<Schemas['Health']>()
+  const [error, setError] = useState<string>()
+
+  useEffect(() => {
+    api
+      .GET('/api/health')
+      .then(({ data }) => (data ? setHealth(data) : setError('The backend returned an error.')))
+      .catch(() => setError('Cannot reach the backend. Check that it is running.'))
+  }, [])
+
+  if (error) return <p>{error}</p>
+  if (!health) return <p>Checking the backend…</p>
+  return (
+    <p>
+      Backend: {health.status}. Database:{' '}
+      {health.database.connected ? 'connected' : 'not connected'}.
+    </p>
+  )
+}
 
 function StepActions({ onBack, children }: { onBack?: () => void; children: ReactNode }) {
   return (
@@ -281,14 +303,15 @@ export function App() {
           />
         )}
       </main>
-      {demo.step !== 'welcome' && (
-        <footer className={setupComplete ? 'site-footer has-bottom-nav' : 'site-footer'}>
+      <footer className={setupComplete ? 'site-footer has-bottom-nav' : 'site-footer'}>
+        <BackendStatus />
+        {demo.step !== 'welcome' && (
           <button className="text-button text-muted" onClick={() => {
             setPlanError('')
             setDemo(freshDemo())
           }}>Reset demo</button>
-        </footer>
-      )}
+        )}
+      </footer>
     </>
   )
 }
