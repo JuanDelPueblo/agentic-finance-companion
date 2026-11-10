@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { ScheduleEditor } from './ScheduleEditor'
 import { Overview, PlanReview } from './PlanResults'
@@ -8,28 +8,14 @@ import {
 } from './demo'
 import './app.css'
 
-const stages = [
-  { id: 'bank', label: 'Bank account' },
-  { id: 'income', label: 'Income' },
-  { id: 'expenses', label: 'Expenses' },
-  { id: 'plan', label: 'Plan' },
-  { id: 'compare', label: 'Review' },
-] as const
-
-function Mark() {
+function StepActions({ onBack, children }: { onBack?: () => void; children: ReactNode }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 17V7m0 8 5-5 4 3 5-6m-5 0h5v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function StepActions({ onBack, children }: { onBack: () => void; children: ReactNode }) {
-  return (
-    <div className="step-actions">
-      <button type="button" className="button button-secondary" onClick={onBack}>
-        <span aria-hidden="true">←</span> Back
-      </button>
+    <div className={onBack ? 'step-actions' : 'step-actions end'}>
+      {onBack && (
+        <button type="button" className="button button-secondary" onClick={onBack}>
+          <span aria-hidden="true">←</span> Back
+        </button>
+      )}
       <div className="step-next">{children}</div>
     </div>
   )
@@ -40,7 +26,8 @@ export function App() {
   const [account, setAccount] = useState<'Login' | 'Signup' | null>(null)
   const [planError, setPlanError] = useState('')
   const heading = useRef<HTMLHeadingElement>(null)
-  const activeStage = stages.findIndex(({ id }) => id === demo.step)
+  const setupComplete = demo.accepted.length > 0
+  const currentPage = demo.step === 'overview' ? 'Home' : demo.step === 'history' ? 'History' : 'Plan'
 
   useEffect(() => {
     try {
@@ -62,13 +49,28 @@ export function App() {
 
   function changePlan(plan: Allocation[]) {
     setPlanError('')
-    setDemo((current) => ({ ...current, plan }))
+    setDemo((current) => ({ ...current, plan, planDraft: true }))
   }
 
-  function startComparison(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function submitPlan(save: boolean) {
     if (!demo.plan.length || demo.plan.some((row) => !row.name.trim() || toCents(row.amount) === null)) {
       setPlanError('Add at least one category. Give each category a name and a valid dollar amount.')
+      return
+    }
+    if (save) {
+      const plan = demo.plan.map((row) => ({
+        ...row,
+        name: row.name.trim(),
+        amount: row.amount.trim(),
+      }))
+      setPlanError('')
+      setDemo((current) => ({
+        ...current,
+        step: 'overview',
+        plan,
+        accepted: plan,
+        planDraft: false,
+      }))
       return
     }
     go('compare')
@@ -83,7 +85,9 @@ export function App() {
     setDemo((current) => ({
       ...current,
       step,
-      ...(step === 'plan' ? { plan: suggestion } : { accepted: suggestion }),
+      plan: suggestion,
+      planDraft: step === 'plan',
+      ...(step === 'overview' ? { accepted: suggestion } : {}),
     }))
   }
 
@@ -91,26 +95,36 @@ export function App() {
 
   return (
     <>
-      <header className="site-header">
-        <div className="site-header-inner">
-          <div className="wordmark"><span className="brand-mark"><Mark /></span> Agentic Finances</div>
-          <div className="header-actions">
-            <span className="sample-badge"><span aria-hidden="true" /> Sample mode</span>
-            {demo.step !== 'welcome' && (
-              <button className="text-button text-muted" onClick={() => {
-                setPlanError('')
-                setDemo(freshDemo())
-              }}>Reset demo</button>
-            )}
-          </div>
-        </div>
-      </header>
       <main className={demo.step === 'welcome' && !account ? 'main welcome-main' : 'main'}>
+        {setupComplete && (
+          <nav className="app-nav" aria-label="Main navigation">
+            <button aria-current={currentPage === 'Home' ? 'page' : undefined} onClick={() => go('overview')}>
+              <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z" />
+              </svg>
+              <span>Home</span>
+            </button>
+            <button aria-current={currentPage === 'History' ? 'page' : undefined} onClick={() => go('history')}>
+              <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 11a9 9 0 1 1 2.6 7.4M3 5v6h6m3-4v5l3 2" />
+              </svg>
+              <span>History</span>
+            </button>
+            <button aria-current={currentPage === 'Plan' ? 'page' : undefined} onClick={() => go('plan')}>
+              <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="3" width="14" height="18" rx="2" />
+                <path d="m8 9 1 1 2-2m2 1h3m-8 6 1 1 2-2m2 1h3" />
+              </svg>
+              <span>Plan</span>
+            </button>
+          </nav>
+        )}
         {demo.step === 'welcome' && !account && (
           <section className="welcome">
             <div className="welcome-content">
-              <p className="eyebrow">Personal finance companion</p>
-              {title('Welcome to Agentic Finances Companion')}
+              <h1 ref={heading} tabIndex={-1}>
+                <span className="welcome-lead">Welcome to</span>{' '}Agentic Finances Companion
+              </h1>
               <p className="intro">See what’s coming in, plan for what’s going out, and build a monthly plan around the way you get paid.</p>
               <div className="welcome-actions">
                 <button className="button button-primary" onClick={() => go('bank')}>Demo <span aria-hidden="true">→</span></button>
@@ -120,24 +134,17 @@ export function App() {
               <p className="fine-print">Explore with sample finances. No bank credentials needed.</p>
             </div>
             <div className="welcome-preview" aria-hidden="true">
-              <span className="preview-mark"><Mark /></span>
-              <div className="preview-card">
-                <span className="preview-label">Monthly plan</span>
-                <strong>A place for every dollar</strong>
-                <div className="preview-row"><span>Rent</span><b>$400.00</b></div>
-                <div className="preview-track"><span style={{ width: '100%' }} /></div>
-                <div className="preview-row"><span>Utilities</span><b>$138.00</b></div>
-                <div className="preview-track"><span style={{ width: '78%' }} /></div>
-                <div className="preview-row"><span>Savings</span><b>$90.00</b></div>
-                <div className="preview-track"><span style={{ width: '60%' }} /></div>
-              </div>
-              <span className="preview-caption">Sample monthly snapshot</span>
+              <svg className="dashboard-icon" viewBox="0 0 64 64" fill="none">
+                <rect x="7" y="7" width="21" height="30" rx="4" />
+                <rect x="36" y="7" width="21" height="16" rx="4" />
+                <rect x="7" y="45" width="21" height="12" rx="4" />
+                <rect x="36" y="31" width="21" height="26" rx="4" />
+              </svg>
             </div>
           </section>
         )}
         {demo.step === 'welcome' && account && (
           <section className="screen">
-            <p className="eyebrow">Sample mode</p>
             {title(account)}
             <p className="intro">
               {account === 'Login'
@@ -151,22 +158,8 @@ export function App() {
             </StepActions>
           </section>
         )}
-        {activeStage >= 0 && (
-          <nav className="progress-nav" aria-label="Setup progress">
-            <ol>
-              {stages.map(({ id, label }, index) => (
-                <li key={id} aria-current={index === activeStage ? 'step' : undefined}
-                  className={index < activeStage ? 'complete' : ''}>
-                  <span className="step-marker">{index + 1}</span><span className="stage-label">{label}</span>
-                </li>
-              ))}
-            </ol>
-            <span className="mobile-progress">Step {activeStage + 1} of {stages.length} · {stages[activeStage].label}</span>
-          </nav>
-        )}
         {demo.step === 'bank' && (
           <section className="screen">
-            <p className="eyebrow">Bank account</p>
             {title('Connect bank account')}
             <p className="intro">Link a sample account to see how balances and recent spending can inform your plan.</p>
             <div className="bank-card">
@@ -193,7 +186,6 @@ export function App() {
         )}
         {(demo.step === 'income' || demo.step === 'expenses') && (
           <section className="screen" key={demo.step}>
-            <p className="eyebrow">{demo.step === 'income' ? 'Money coming in' : 'Money going out'}</p>
             {title(demo.step === 'income' ? 'Income Sources' : 'Recurring Expenses')}
             <p className="intro">
               {demo.step === 'income'
@@ -212,10 +204,16 @@ export function App() {
         )}
         {demo.step === 'plan' && (
           <section className="screen">
-            <p className="eyebrow">Monthly allocations</p>
             {title('Financial plan')}
-            <p className="intro">Choose how much you want to set aside for each category.</p>
-            <form onSubmit={startComparison}>
+            <p className="intro">
+              {setupComplete
+                ? 'Update your allocations, then save your plan to update Home. You can also compare it with your spending history.'
+                : 'Choose how much you want to set aside for each category.'}
+            </p>
+            <form onSubmit={(event) => {
+              event.preventDefault()
+              submitPlan(setupComplete)
+            }}>
               <div className="allocation-list">
                 {demo.plan.map((row) => (
                   <div className="allocation" key={row.id}>
@@ -254,8 +252,13 @@ export function App() {
                 <div><span>Monthly total</span><strong>{money(totalPlan(demo.plan))}</strong></div>
               </div>
               {planError && <p className="form-error" role="alert">{planError}</p>}
-              <StepActions onBack={() => go(demo.accepted.length ? 'overview' : 'expenses')}>
-                <button className="button button-primary">Compare plan <span aria-hidden="true">→</span></button>
+              <StepActions onBack={setupComplete ? undefined : () => go('expenses')}>
+                {setupComplete && (
+                  <button type="button" className="button button-secondary" onClick={() => submitPlan(false)}>Compare plan</button>
+                )}
+                <button className="button button-primary">
+                  {setupComplete ? 'Save plan' : 'Compare plan'} <span aria-hidden="true">→</span>
+                </button>
               </StepActions>
             </form>
           </section>
@@ -269,14 +272,23 @@ export function App() {
             onAccept={() => applySuggestion('overview')}
           />
         )}
-        {demo.step === 'overview' && (
-          <Overview demo={demo} heading={heading} onEdit={() => {
-            changePlan(demo.accepted)
-            go('plan')
-          }} />
+        {(demo.step === 'overview' || demo.step === 'history') && (
+          <Overview
+            demo={demo}
+            heading={heading}
+            view={demo.step === 'history' ? 'history' : 'balances'}
+            onEdit={() => go('plan')}
+          />
         )}
       </main>
-      <footer className="site-footer">Agentic Finances Companion <span>·</span> Interactive prototype</footer>
+      {demo.step !== 'welcome' && (
+        <footer className={setupComplete ? 'site-footer has-bottom-nav' : 'site-footer'}>
+          <button className="text-button text-muted" onClick={() => {
+            setPlanError('')
+            setDemo(freshDemo())
+          }}>Reset demo</button>
+        </footer>
+      )}
     </>
   )
 }

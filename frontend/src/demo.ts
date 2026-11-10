@@ -1,4 +1,4 @@
-export type Step = 'welcome' | 'bank' | 'income' | 'expenses' | 'plan' | 'compare' | 'overview'
+export type Step = 'welcome' | 'bank' | 'income' | 'expenses' | 'plan' | 'compare' | 'overview' | 'history'
 export type Cadence = 'once' | 'weekly' | 'biweekly' | 'monthly'
 
 export interface ScheduledEntry {
@@ -22,6 +22,7 @@ export interface Demo {
   expenses: ScheduledEntry[]
   plan: Allocation[]
   accepted: Allocation[]
+  planDraft?: boolean
 }
 
 export const storageKey = 'agentic-finance-sample-v1'
@@ -84,6 +85,7 @@ export function freshDemo(): Demo {
       { id: 'gas', name: 'Gas', amount: '80' },
     ],
     accepted: [],
+    planDraft: false,
   }
 }
 
@@ -93,11 +95,17 @@ export function loadDemo(): Demo {
     if (saved) {
       const demo: Demo = JSON.parse(saved)
       if (
-        ['welcome', 'bank', 'income', 'expenses', 'plan', 'compare', 'overview'].includes(demo.step) &&
+        ['welcome', 'bank', 'income', 'expenses', 'plan', 'compare', 'overview', 'history'].includes(demo.step) &&
         typeof demo.connected === 'boolean' &&
         [demo.income, demo.expenses, demo.plan, demo.accepted].every(Array.isArray)
       ) {
-        return demo
+        // Older saved demos kept the original setup draft after accepting a suggestion.
+        const planDraft = demo.planDraft ?? (demo.step === 'plan' || demo.step === 'compare')
+        return {
+          ...demo,
+          planDraft,
+          plan: !planDraft && demo.accepted.length ? demo.accepted : demo.plan,
+        }
       }
     }
   } catch {
@@ -163,4 +171,48 @@ export function latestActivity(id: string) {
   const category = trackedSpending.get(id)
   if (category) return latest.spending[category]
   return id === 'save' ? latest.saved : null
+}
+
+export function getPlanOverview(demo: Pick<Demo, 'connected' | 'accepted'>) {
+  if (!demo.connected || !demo.accepted.length) {
+    return {
+      state: 'pending',
+      label: 'More data needed',
+      message: 'Connect the sample bank to check your progress against your plan.',
+    }
+  }
+
+  const progress = demo.accepted.map((row) => ({
+    name: row.name,
+    activity: latestActivity(row.id),
+    target: toCents(row.amount) ?? 0,
+    savings: row.id === 'save',
+  }))
+  const issues = progress.filter(({ activity, target, savings }) =>
+    activity !== null && (savings ? activity < target : activity > target),
+  )
+  if (issues.length) {
+    return {
+      state: 'attention',
+      label: 'Changes needed',
+      message: issues.map(({ name, activity, target, savings }) => {
+        const difference = savings ? target - activity! : activity! - target
+        return `${name} is ${money(difference)} ${savings ? 'below target' : 'over budget'}.`
+      }).join(' '),
+    }
+  }
+
+  if (progress.some(({ activity }) => activity === null)) {
+    return {
+      state: 'pending',
+      label: 'More data needed',
+      message: 'Some categories have no sample activity yet, so your full plan status is pending.',
+    }
+  }
+
+  return {
+    state: 'on-track',
+    label: 'On track',
+    message: 'You are on track with your plan. All tracked categories are meeting their targets.',
+  }
 }
