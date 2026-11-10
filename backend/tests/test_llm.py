@@ -76,6 +76,12 @@ class FakeAPI:
         return messages[1:] if self.provider == "openai" else messages
 
 
+@pytest.fixture(autouse=True)
+def settings_without_a_database(monkeypatch) -> None:
+    """Settings needs a database URL, but the adapter never connects to one."""
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://unused@localhost/unused")
+
+
 @pytest.fixture(params=["anthropic", "openai"])
 def api(request, monkeypatch) -> FakeAPI:
     provider = request.param

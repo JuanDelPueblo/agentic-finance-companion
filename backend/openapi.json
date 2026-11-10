@@ -74,6 +74,65 @@
         "title": "AvailableCashSummary",
         "type": "object"
       },
+      "Body_login_api_auth_login_post": {
+        "properties": {
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "format": "password",
+            "title": "Client Secret"
+          },
+          "grant_type": {
+            "anyOf": [
+              {
+                "pattern": "^password$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Type"
+          },
+          "password": {
+            "format": "password",
+            "title": "Password",
+            "type": "string"
+          },
+          "scope": {
+            "default": "",
+            "title": "Scope",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_api_auth_login_post",
+        "type": "object"
+      },
       "CategoryBreakdownForCurrency": {
         "properties": {
           "categories": {
@@ -521,6 +580,89 @@
         "title": "SpendingCategory",
         "type": "object"
       },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "token_type": {
+            "const": "bearer",
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token"
+        ],
+        "title": "Token",
+        "type": "object"
+      },
+      "UserCreate": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "UserCreate",
+        "type": "object"
+      },
+      "UserPublic": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "email",
+          "display_name"
+        ],
+        "title": "UserPublic",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -563,9 +705,14 @@
       }
     },
     "securitySchemes": {
-      "HTTPBearer": {
-        "scheme": "bearer",
-        "type": "http"
+      "OAuth2PasswordBearer": {
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "api/auth/login"
+          }
+        },
+        "type": "oauth2"
       }
     }
   },
@@ -575,6 +722,114 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/auth/login": {
+      "post": {
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_login_api_auth_login_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "operationId": "read_me_api_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Read Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "operationId": "register_api_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/financial-state/available-cash": {
       "get": {
         "operationId": "available_cash_api_financial_state_available_cash_get",
@@ -592,7 +847,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "OAuth2PasswordBearer": []
           }
         ],
         "summary": "Available Cash",
@@ -647,7 +902,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "OAuth2PasswordBearer": []
           }
         ],
         "summary": "Category Breakdown",
@@ -673,7 +928,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "OAuth2PasswordBearer": []
           }
         ],
         "summary": "Credit Balance Owed",
@@ -728,7 +983,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "OAuth2PasswordBearer": []
           }
         ],
         "summary": "Monthly Income",
@@ -783,7 +1038,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "OAuth2PasswordBearer": []
           }
         ],
         "summary": "Net Monthly Cashflow",
@@ -838,7 +1093,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "OAuth2PasswordBearer": []
           }
         ],
         "summary": "Net Monthly Spending",
@@ -905,7 +1160,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "OAuth2PasswordBearer": []
           }
         ],
         "summary": "Exchange Public Token",
@@ -951,7 +1206,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "OAuth2PasswordBearer": []
           }
         ],
         "summary": "Create Link Token",

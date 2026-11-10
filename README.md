@@ -13,12 +13,22 @@ Capstone project, University of Puerto Rico at Mayagüez, Fall 2026.
 | Julio Camacho | [CdoxHype](https://github.com/CdoxHype) | Backend and planning engine |
 | Ángel A. Martínez Maldonado | [AngelMartinez33](https://github.com/AngelMartinez33) | Frontend and user experience |
 
-## Current starter
+## Current state
 
-- The React frontend displays the API and database connection status.
-- FastAPI exposes `GET /api/health`, which checks the PostgreSQL connection.
-- Compose runs the frontend, API, PostgreSQL, and a worker that waits for shutdown.
-  Alembic manages the database schema. Job processing is planned for later.
+The backend works end to end on Plaid Sandbox data. The web interface is still a
+placeholder page.
+
+| Part | State |
+|---|---|
+| Accounts and sign-in | Email registration and login. The API issues a JWT access token. |
+| Bank data | Plaid account linking, cursor-based transaction sync, and webhooks. |
+| Financial state | Six calculations from stored data: available cash, credit balance owed, monthly income, spending, net cash flow, and spending by category. |
+| LLM adapter | Structured replies from Anthropic or OpenAI, validated against a schema, with up to two retries. |
+| Plan generation and validation | Not started. |
+| Web interface | Shows the API and database status only. |
+
+Compose runs the frontend, API, PostgreSQL, and a worker that waits for shutdown.
+Alembic manages the database schema. Job processing is planned for later.
 
 ## Quick start
 
