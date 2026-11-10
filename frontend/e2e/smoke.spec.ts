@@ -1,15 +1,75 @@
 import { expect, test } from '@playwright/test'
 
-// The API is mocked, so this test needs no backend.
-test('home page shows the backend status', async ({ page }) => {
-  await page.route('**/api/health', (route) =>
-    route.fulfill({
-      json: {
-        status: 'ok',
-        database: { connected: true },
-      },
-    }),
-  )
+test('completes the sample flow and keeps the accepted plan after reload', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText('Backend: ok')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Welcome to Agentic Finances Companion' })).toBeVisible()
+  await page.getByRole('button', { name: 'Demo' }).click()
+  await page.getByRole('button', { name: 'Connect sample bank' }).click()
+  await page.getByRole('button', { name: 'Continue' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Income Sources' })).toBeVisible()
+  await page.getByRole('button', { name: 'Add income' }).click()
+  await page.getByLabel('Source name').fill('Weekend shift')
+  await page.getByLabel('Amount (USD)').fill('175.25')
+  await page.getByLabel('Next pay date').fill('2026-11-21')
+  await page.getByLabel('Frequency').selectOption('once')
+  await page.getByRole('button', { name: 'Save income' }).click()
+  await expect(page.getByText('Weekend shift')).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('Weekend shift')).toBeVisible()
+  await page.getByRole('button', { name: 'Continue' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Recurring Expenses' })).toBeVisible()
+  await page.getByRole('button', { name: 'Edit Utilities' }).click()
+  await page.getByLabel('Amount (USD)').fill('145')
+  await page.getByRole('button', { name: 'Save expense' }).click()
+  await expect(page.getByText('$145.00')).toBeVisible()
+  await page.getByRole('button', { name: 'Continue' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Financial plan' })).toBeVisible()
+  await page.getByRole('button', { name: 'Add category' }).click()
+  await page.getByLabel('Category name').fill('Books')
+  await page.getByRole('textbox', { name: 'Books amount' }).fill('45')
+  await page.getByRole('button', { name: 'Compare plan' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Suggested plan' })).toBeVisible()
+  await expect(page.getByRole('row', { name: /Gas/ })).toContainText('$105.00')
+  await expect(page.getByText('$545.00')).toBeVisible()
+  await page.getByRole('button', { name: 'Edit suggestion' }).click()
+  await expect(page.getByRole('textbox', { name: 'Gas amount' })).toHaveValue('105.00')
+  await page.getByRole('button', { name: 'Compare plan' }).click()
+  await page.getByRole('button', { name: 'Accept plan' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Balances and History' })).toBeVisible()
+  await expect(page.getByText('Over budget')).toBeVisible()
+  await expect(page.getByText('Target $45.00')).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('Target $45.00')).toBeVisible()
+  await page.getByRole('button', { name: 'History', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'October 2026' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'August 2026' })).toBeVisible()
+  await page.getByRole('button', { name: 'Back to balances' }).click()
+  await expect(page.getByRole('heading', { name: 'Budget progress' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Reset demo' }).click()
+  await expect(page.getByRole('heading', { name: 'Welcome to Agentic Finances Companion' })).toBeVisible()
+})
+
+test('opens both account previews and completes the demo without a bank on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Login' }).click()
+  await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible()
+  await page.getByRole('button', { name: 'Back' }).click()
+  await page.getByRole('button', { name: 'Signup' }).click()
+  await expect(page.getByRole('heading', { name: 'Signup' })).toBeVisible()
+  await page.getByRole('button', { name: 'Continue with sample profile' }).click()
+  await page.getByRole('button', { name: 'Skip for now' }).click()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await page.getByRole('button', { name: 'Compare plan' }).click()
+  await expect(page.getByText(/suggested amounts match your draft/)).toBeVisible()
+  await page.getByRole('button', { name: 'Accept plan' }).click()
+  await page.getByRole('button', { name: 'History', exact: true }).click()
+  await expect(page.getByText(/No sample history/)).toBeVisible()
 })
