@@ -66,3 +66,7 @@ The initial migration creates 12 application tables. Alembic also creates
 See [the documentation site](https://juandelpueblo.github.io/agentic-finance-companion/),
 or read it in [`docs/`](docs/): [Overview](docs/index.md), [Setup](docs/setup.md), and
 [Development](docs/development.md).
+
+## License
+
+Released under the [MIT License](LICENSE).
