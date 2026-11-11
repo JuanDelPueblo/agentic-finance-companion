@@ -9,8 +9,7 @@ financial state, and validates a plan drafted by an LLM.
 Preliminary frontend prototype implemented. The prototype uses synthetic financial data to exercise onboarding, income and recurring expense entry, financial plan creation and comparison, and dashboard navigation.
 
 The backend works end to end on Plaid Sandbox data: a user registers, signs in, links a
-Sandbox bank, and reads their financial state from the API. The web interface is still
-a placeholder page that shows the API and database status.
+Sandbox bank, and reads their financial state from the API.
 
 | Part | State |
 |---|---|
@@ -20,7 +19,7 @@ a placeholder page that shows the API and database status.
 | LLM adapter | Done: Anthropic and OpenAI, with validated structured replies |
 | Plan generation and validation | Not started |
 | Missing-context detection and replanning | Not started |
-| Web interface | Not started |
+| Web interface | Prototype with synthetic data, not yet connected to the API |
 
 ## Project links
 
