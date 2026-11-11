@@ -26,7 +26,7 @@ The backend works end to end on Plaid Sandbox data.
 | Financial state | Six calculations from stored data: available cash, credit balance owed, monthly income, spending, net cash flow, and spending by category. |
 | LLM adapter | Structured replies from Anthropic or OpenAI, validated against a schema, with up to two retries. |
 | Plan generation and validation | Not started. |
-| Web interface | Shows the API and database status only. |
+| Web interface | Clickable prototype of the onboarding, plan, and dashboard screens, with synthetic data. Not yet connected to the API. |
 
 Compose runs the frontend, API, PostgreSQL, and a worker that waits for shutdown.
 Alembic manages the database schema. Job processing is planned for later.
