@@ -15,8 +15,9 @@ Capstone project, University of Puerto Rico at Mayagüez, Fall 2026.
 
 ## Current state
 
-The backend works end to end on Plaid Sandbox data. The web interface is still a
-placeholder page.
+Preliminary frontend prototype implemented. The prototype uses synthetic financial data to exercise onboarding, income and recurring expense entry, financial plan creation and comparison, and dashboard navigation.
+
+The backend works end to end on Plaid Sandbox data.
 
 | Part | State |
 |---|---|

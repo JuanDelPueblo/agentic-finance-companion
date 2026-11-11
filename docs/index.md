@@ -6,6 +6,8 @@ financial state, and validates a plan drafted by an LLM.
 
 ## Current state
 
+Preliminary frontend prototype implemented. The prototype uses synthetic financial data to exercise onboarding, income and recurring expense entry, financial plan creation and comparison, and dashboard navigation.
+
 The backend works end to end on Plaid Sandbox data: a user registers, signs in, links a
 Sandbox bank, and reads their financial state from the API. The web interface is still
 a placeholder page that shows the API and database status.
